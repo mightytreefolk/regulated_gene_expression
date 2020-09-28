@@ -7,6 +7,8 @@ name = "pypi"
 numpy = "*"
 scipy = "*"
 matplotlib = "*"
+torch = "*"
+torchvision = "*"
 
 [requires]
 python_version = "3.6"
