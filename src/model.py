@@ -35,7 +35,6 @@ class UnregulatedGeneExpression:
 
     # Use scipy.odeint to evaluate
     def unregulated_gene_expression(self, z, t=.1):
-        print(z)
         m0 = z[0]
         p0 = z[1]
         dmdt = self.k0 - self.dm * m0
@@ -46,8 +45,8 @@ class UnregulatedGeneExpression:
     # Use scipy.odeint to evaluate
     def reduced_model(self, z, t):
         p0 = z[1]
-        dpdt = (self.k1 * self.k0) / self.dm - self.dp * self.p0
-        return dpdt
+        dpdt = (self.k1 * self.k0) / self.dm - self.dp * p0
+        return 0, dpdt
 
     def gillespie(self):
         a1 = self.k0
