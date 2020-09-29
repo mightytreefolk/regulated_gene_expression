@@ -1,70 +1,65 @@
-import numpy as np
-from scipy.integrate import odeint
-import matplotlib.pyplot as plt
-import random
-import math as m
+
+import math
 
 n_A = 6.023E23 #Avogadro's Number
 
-# This function models the ODE of an unregulated genetic expression of a prokaryotic cell 
-# k0 is the rate at which mRNA is being generated
-# k1 is the rate at which proteins are being 
-# delm and delp are the degradation constants of mRNA and proteins respectively
-def unregulated_gene_expression(z,t):
-    k0 = 0.0001
-    k1 = 0.0001
-    delm = 0.03
-    delp = 0.0002
-    m0 = z[0]
-    p0 = z[1]
-    dmdt = k0 - delm*m0
-    dpdt = k1*m0 - delp*p0
+"""
+This models the ODE of an unregulated genetic expression of a prokaryotic cell
+k0 is the rate at which mRNA is being generated
+k1 is the rate at which proteins are being 
+dm and dp are the degradation constants of mRNA and proteins respectively
+C1 and C2 are integration constants
+"""
 
-    dzdt = dmdt, dpdt
-    return dzdt
 
-# initial condition
-z0 = [0.1, 0.3]
+class UnregulatedGeneExpression:
 
-# number of time points
-n = 10000
+    # t0 is a single number and t is a vector of numbers
+    # const is an array of numbers that represent the constants of the reactions
+    def __init__(self, t0, t, const):
+        self.t0 = t0
+        self.t = t
+        self.k0 = const[0]
+        self.k1 = const[1]
+        self.dm = const[2]
+        self.dp = const[3]
 
-# time points
-t = np.linspace(0,1000,n)
+    def unregulated_m_rna(self):
+        m_rna = C1 * math.exp(-self.dm * self.t0) + self.k0/self.dm
+        return m_rna
 
-# store solutions
-m = np.empty_like(t)
-p = np.empty_like(t)
+    def unregulated_protein(self):
+        protein = (self.k1 * self.k0) / (self.dm * self.dp) + (C1 * math.exp(-self.dm * self.t0))/(self.dp - self.dm) \
+                  + C2 * math.exp(-self.dp * self.t0)
+        return protein
 
-# record initial conditions
-m[0] = z0[0]
-p[0] = z0[1]
+    # Use scipy.odeint to evaluate
+    def unregulated_gene_expression(self, z, t=.1):
+        print(z)
+        m0 = z[0]
+        p0 = z[1]
+        dmdt = self.k0 - self.dm * m0
+        dpdt = self.k1 * m0 - self.dp*p0
+        dzdt = dmdt, dpdt
+        return dzdt
 
-# solve ODE
-for i in range(1,n):
-    
-    # span for next time step
-    tspan = [t[i-1],t[i]]
-    
-    # solve for next step
-    z = odeint(unregulated_gene_expression,z0,tspan)
-    
-    # store solution for plotting
-    m[i] = z[1][0]
-    p[i] = z[1][1]
-    
-    # next initial condition
-    z0 = z[1] 
+    # Use scipy.odeint to evaluate
+    def reduced_model(self, z, t):
+        p0 = z[1]
+        dpdt = (self.k1 * self.k0) / self.dm - self.dp * self.p0
+        return dpdt
 
-plt.subplot(211)
-plt.plot(t,m, 'r--', label='A(t)')
-plt.grid(True)
-plt.legend(loc='best')
+    def gillespie(self):
+        a1 = self.k0
+        a2 = self.k1 * Nm
+        a3 = self.dm * Nm
+        a4 = self.dp * Np
 
-plt.subplot(212)
-plt.plot(t,p, 'r--', label='R(t)')
-plt.grid(True)
-plt.legend(loc='best')
+        total = a1 + a2 + a3 + a4
 
-plt.show()
+
+
+
+
+
 
