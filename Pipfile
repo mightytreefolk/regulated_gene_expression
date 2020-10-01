@@ -13,6 +13,7 @@ pandas = "*"
 plotly = "*"
 psutil = "*"
 requests = "*"
+kaleido = "*"
 
 [requires]
 python_version = "3.6"

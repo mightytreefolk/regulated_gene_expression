@@ -24,12 +24,12 @@ class UnregulatedGeneExpression:
         self.dm = const[2]
         self.dp = const[3]
 
-    def solved_unregulated(self):
+    def solved_unregulated(self, t):
         C1 = self.m0 - self.k0 / self.dm
         C2 = self.p0 - (self.k1 * self.k0) / (self.dm * self.dp) - C1 / (self.dp - self.dm)
-        m_rna = C1 * math.exp(-self.dm * self.t) + self.k0 / self.dm
-        protein = (self.k1 * self.k0) / (self.dm * self.dp) + (C1 * math.exp(-self.dm * self.t)) / (self.dp - self.dm) \
-                  + C2 * math.exp(-self.dp * self.t)
+        m_rna = C1 * math.exp(-self.dm * t) + self.k0 / self.dm
+        protein = (self.k1 * self.k0) / (self.dm * self.dp) + (C1 * math.exp(-self.dm * t)) / (self.dp - self.dm) \
+                  + C2 * math.exp(-self.dp * t)
         return m_rna, protein
 
     # Use scipy.odeint to evaluate
@@ -59,8 +59,8 @@ class GillespieUnregulatedGeneExpression:
         self.k1 = const[1]
         self.dm = const[2]
         self.dp = const[3]
-        self.Nm = m0 * 6.5E-16 * 6.023E23
-        self.Np = p0 * 6.5E-16 * 6.023E23
+        self.Nm = m0
+        self.Np = p0
 
     def initial_state(self):
         return [self.Nm, self.Np]
