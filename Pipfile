@@ -9,6 +9,10 @@ scipy = "*"
 matplotlib = "*"
 torch = "*"
 torchvision = "*"
+pandas = "*"
+plotly = "*"
+psutil = "*"
+requests = "*"
 
 [requires]
 python_version = "3.6"

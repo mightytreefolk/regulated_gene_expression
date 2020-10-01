@@ -13,10 +13,9 @@ m0 and p0 are the mRNA and protein concentrations in M
 
 class UnregulatedGeneExpression:
 
-    # t0 is a single number and t is a vector of numbers
+    # t is a number
     # const is an array of numbers that represent the constants of the reactions
-    def __init__(self, t0=None, t=None, m0=0, p0=0, const=(1, 1, .1, .1)):
-        self.t0 = t0
+    def __init__(self, t=0, m0=0, p0=0, const=(1, 1, .1, .1)):
         self.t = t
         self.m0 = m0
         self.p0 = p0
@@ -28,9 +27,9 @@ class UnregulatedGeneExpression:
     def solved_unregulated(self):
         C1 = self.m0 - self.k0 / self.dm
         C2 = self.p0 - (self.k1 * self.k0) / (self.dm * self.dp) - C1 / (self.dp - self.dm)
-        m_rna = C1 * math.exp(-self.dm * self.t0) + self.k0 / self.dm
-        protein = (self.k1 * self.k0) / (self.dm * self.dp) + (C1 * math.exp(-self.dm * self.t0)) / (self.dp - self.dm) \
-                  + C2 * math.exp(-self.dp * self.t0)
+        m_rna = C1 * math.exp(-self.dm * self.t) + self.k0 / self.dm
+        protein = (self.k1 * self.k0) / (self.dm * self.dp) + (C1 * math.exp(-self.dm * self.t)) / (self.dp - self.dm) \
+                  + C2 * math.exp(-self.dp * self.t)
         return m_rna, protein
 
     # Use scipy.odeint to evaluate
@@ -101,7 +100,6 @@ class GillespieUnregulatedGeneExpression:
             return t
 
     def update_reaction_vector(self, current_state, update_vector):
-        # print(current_state, update_vector)
         current_state = numpy.array(current_state)
         update_vector = numpy.array(update_vector)
         updated = current_state + update_vector
