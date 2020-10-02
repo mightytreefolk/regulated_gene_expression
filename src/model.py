@@ -1,6 +1,8 @@
 import math
 import random
 import numpy
+import pandas
+
 """
 This models the ODE of an unregulated genetic expression of a prokaryotic cell
 k0 is the rate at which mRNA is being generated
@@ -104,5 +106,33 @@ class GillespieUnregulatedGeneExpression:
         update_vector = numpy.array(update_vector)
         updated = current_state + update_vector
         return updated
+
+    def run_sim(self):
+        time = []
+        protein = []
+        mrna = []
+        t = 0  # start time
+        r0 = self.initial_state()
+        mrna.append(r0[0])
+        protein.append(r0[1])
+        time.append(t)
+        while t <= self.tmax:
+            a = self.update_propensities(r0[0], r0[1])
+            next_rxn = self.next_reaction(a)
+            t = self.time_to_next_rxn(a, t)
+            r = self.update_reaction_vector(r0, next_rxn)
+            mrna.append(r[0])
+            protein.append(r[1])
+            time.append(t)
+            r0 = r
+
+        dfp = pandas.DataFrame()
+        dfp["Time"] = time
+        dfp["Proteins"] = protein
+
+        dfm = pandas.DataFrame()
+        dfm["Time"] = time
+        dfm["mRNA"] = mrna
+        return dfm, dfp
 
 

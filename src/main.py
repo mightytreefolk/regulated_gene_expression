@@ -85,40 +85,6 @@ def numerical_sim(tmax, z0, n, const):
     return dfm, dfp
 
 
-def Gillespie_sim(tmax, m0, p0, const):
-
-    gill_model = GillespieUnregulatedGeneExpression(tmax=tmax, m0=m0, p0=p0, const=const)
-
-    time = []
-    protein = []
-    mrna = []
-    t = 0  # start time
-    r0 = gill_model.initial_state()
-    mrna.append(r0[0])
-    protein.append(r0[1])
-    time.append(t)
-
-    while t <= tmax:
-
-        a = gill_model.update_propensities(r0[0], r0[1])
-        next_rxn = gill_model.next_reaction(a)
-        t = gill_model.time_to_next_rxn(a, t)
-        r = gill_model.update_reaction_vector(r0, next_rxn)
-        mrna.append(r[0])
-        protein.append(r[1])
-        time.append(t)
-        r0 = r
-
-    dfp = pandas.DataFrame()
-    dfp["Time"] = time
-    dfp["Proteins"] = protein
-
-    dfm = pandas.DataFrame()
-    dfm["Time"] = time
-    dfm["mRNA"] = mrna
-    return dfm, dfp
-
-
 def main():
     # seconds for sims
     tmax = 10000
@@ -133,7 +99,8 @@ def main():
     """Extract data"""
     num_mrna, num_protein = numerical_sim(tmax=tmax, z0=initial_conditions, n=n, const=const)
     ode_mrna, ode_proteins = ode_sim(tmax=tmax, z0=initial_conditions, n=n, const=const)
-    gill_mrna, gill_protein = Gillespie_sim(tmax=tmax, m0=initial_conditions[0], p0=initial_conditions[1], const=const)
+    gill_model = GillespieUnregulatedGeneExpression(tmax=tmax, m0=initial_conditions[0], p0=initial_conditions[1], const=const)
+    gill_mrna, gill_protein = gill_model.run_sim()
 
     """Define plot paths"""
     base_path = "/Users/pthompson/Dropbox/Documents/PhD/First_Year/Goldings_lab/Math-Model-Sys-Bio/plots/"
@@ -221,8 +188,8 @@ def main():
         )
     )
     ode_num_fig.show()
-    ode_num_fig.write_html(num_ode_path, include_plotlyjs=True)
-    ode_num_fig.write_image(num_ode_image_path)
+    # ode_num_fig.write_html(num_ode_path, include_plotlyjs=True)
+    # ode_num_fig.write_image(num_ode_image_path)
 
     """Plot Gillespie Data vs ODE Data"""
     gill_fig = px.scatter()
@@ -242,8 +209,8 @@ def main():
         )
     )
     gill_fig.show()
-    gill_fig.write_html(gill_path)
-    gill_fig.write_image(gill_image_path)
+    # gill_fig.write_html(gill_path)
+    # gill_fig.write_image(gill_image_path)
 
 
     """Get satistics from dataframes For numerical, gillespie and ODE sims"""
@@ -359,8 +326,8 @@ def main():
         )
     )
     stat_ode_num_fig.show()
-    stat_ode_num_fig.write_html(stat_path)
-    stat_ode_num_fig.write_image(stat_image_path)
+    # stat_ode_num_fig.write_html(stat_path)
+    # stat_ode_num_fig.write_image(stat_image_path)
 
 
 if __name__ == '__main__':
