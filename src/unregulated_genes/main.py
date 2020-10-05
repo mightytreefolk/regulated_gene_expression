@@ -102,14 +102,14 @@ def main():
     gill_mrna, gill_protein = gill_model.run_sim()
 
     """Define plot paths"""
-    base_path = "/Users/pthompson/Dropbox/Documents/PhD/First_Year/Goldings_lab/Math-Model-Sys-Bio/plots/"
+    base_path = "plots/"
     run_name = "steady_state"
     timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    num_ode_path = os.path.join(base_path, "ode_num_compare_plot-{run_name}-{time}.html".format(time=timestamp,
+    num_ode_path = os.path.join(base_path, "html/ode_num_compare_plot-{run_name}-{time}.html".format(time=timestamp,
                                                                                                 run_name=run_name))
-    gill_path = os.path.join(base_path, "gill_plot-{run_name}-{time}.html".format(time=timestamp,
+    gill_path = os.path.join(base_path, "html/gill_plot-{run_name}-{time}.html".format(time=timestamp,
                                                                                   run_name=run_name))
-    stat_path = os.path.join(base_path, "stat_plot-{run_name}-{time}.html".format(time=timestamp,
+    stat_path = os.path.join(base_path, "html/stat_plot-{run_name}-{time}.html".format(time=timestamp,
                                                                                   run_name=run_name))
     num_ode_image_path = os.path.join(base_path,
                                       "images/ode_num_compare_plot-{run_name}-{time}.png".format(time=timestamp,
@@ -189,8 +189,8 @@ def main():
     )
     ode_num_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", secondary_y=True)
     ode_num_fig.show()
-    # ode_num_fig.write_html(num_ode_path, include_plotlyjs=True)
-    # ode_num_fig.write_image(num_ode_image_path)
+    ode_num_fig.write_html(num_ode_path, include_plotlyjs=True)
+    ode_num_fig.write_image(num_ode_image_path)
 
     """Plot Gillespie Data vs ODE Data"""
     gill_fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -211,8 +211,8 @@ def main():
     )
     gill_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", secondary_y=True)
     gill_fig.show()
-    # gill_fig.write_html(gill_path)
-    # gill_fig.write_image(gill_image_path)
+    gill_fig.write_html(gill_path)
+    gill_fig.write_image(gill_image_path)
 
     """Get satistics from dataframes For numerical, gillespie and ODE sims"""
     num_prot_mean, num_prot_var = num_protein.mean(), num_protein.var()
@@ -248,7 +248,7 @@ def main():
         ["Protein var", gill_prot_var["Proteins"], "Gillespie"],
     ], columns=["Stat Type", "Value", "Sim Type"])
 
-    # stat_fig = make_subplots(rows=2, cols=2)
+    stat_fig = make_subplots(rows=2, cols=2)
     mrna_mean_fig = px.bar(mrna_mean_df,
                            x="Stat Type",
                            y="Value",
