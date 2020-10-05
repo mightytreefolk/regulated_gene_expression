@@ -167,18 +167,18 @@ def main():
     )
 
     """Plot Numerical vs. ODE sim"""
-    ode_num_fig = go.Figure()
+    ode_num_fig = make_subplots(specs=[[{"secondary_y": True}]])
     # Numerical traces
-    ode_num_fig.add_trace(num_trace1)
-    ode_num_fig.add_trace(num_trace2)
+    ode_num_fig.add_trace(num_trace1, secondary_y=True)
+    ode_num_fig.add_trace(num_trace2, secondary_y=False)
 
     # ODE traces
-    ode_num_fig.add_trace(ode_trace1)
-    ode_num_fig.add_trace(ode_trace2)
+    ode_num_fig.add_trace(ode_trace1, secondary_y=True,)
+    ode_num_fig.add_trace(ode_trace2, secondary_y=False)
     ode_num_fig.update_layout(
         title="ODE and numerical comparison of mRNA and Protein molecules over time",
         xaxis_title="Time (s)",
-        yaxis_title="Number of Molecules",
+        yaxis_title="Number of <b>Protein</b> Molecules",
         legend_title="Legend",
         barmode="group",
         font=dict(
@@ -187,20 +187,21 @@ def main():
             color="Black"
         )
     )
+    ode_num_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", secondary_y=True)
     ode_num_fig.show()
     # ode_num_fig.write_html(num_ode_path, include_plotlyjs=True)
     # ode_num_fig.write_image(num_ode_image_path)
 
     """Plot Gillespie Data vs ODE Data"""
-    gill_fig = px.scatter()
-    gill_fig.add_trace(gill_trace1)
-    gill_fig.add_trace(gill_trace2)
-    gill_fig.add_trace(ode_trace1)
-    gill_fig.add_trace(ode_trace2)
+    gill_fig = make_subplots(specs=[[{"secondary_y": True}]])
+    gill_fig.add_trace(gill_trace1, secondary_y=True,)
+    gill_fig.add_trace(gill_trace2, secondary_y=False,)
+    gill_fig.add_trace(ode_trace1, secondary_y=True,)
+    gill_fig.add_trace(ode_trace2, secondary_y=False, )
     gill_fig.update_layout(
         title="Gillespie comparison of mRNA and Protein molecules over time",
         xaxis_title="Time (s)",
-        yaxis_title="Number of Molecules",
+        yaxis_title="Number of <b>Protein</b> Molecules",
         legend_title="Legend",
         font=dict(
             family="Courier New, monospace",
@@ -208,6 +209,7 @@ def main():
             color="Black"
         )
     )
+    gill_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", secondary_y=True)
     gill_fig.show()
     # gill_fig.write_html(gill_path)
     # gill_fig.write_image(gill_image_path)
