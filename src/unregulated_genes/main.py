@@ -224,78 +224,101 @@ def main():
     gill_prot_mean, gill_prot_var = gill_protein.mean(), gill_protein.var()
     gill_mrna_mean, gill_mrna_var = gill_mrna.mean(), gill_mrna.var()
 
-    mrna_mean_df = pandas.DataFrame([
-        ["mRNA mean", num_mrna_mean["mRNA"], "Numerical"],
-        ["mRNA mean", ode_mrna_mean["mRNA"], "ODE"],
-        ["mRNA mean", gill_mrna_mean["mRNA"], "Gillespie"],
-    ], columns=["Stat Type", "Value", "Sim Type"])
+    """Create Stat traces from data"""
+    ode_prot_mean_trace = go.Bar(x=["Protein Mean"],
+                                 y=[ode_prot_mean["Proteins"]],
+                                 name="ODE Protein",
+                                 marker=dict(color=["crimson"])
+                                 )
+    ode_mrna_mean_trace = go.Bar(x=["mRNA Mean"],
+                                 y=[ode_mrna_mean["mRNA"]],
+                                 name="ODE mRNA",
+                                 marker=dict(color=["crimson"])
+                                 )
+    ode_prot_var_trace = go.Bar(x=["Protein Variance"],
+                                y=[ode_prot_var["Proteins"]],
+                                name="ODE Protein",
+                                marker=dict(color=["crimson"])
+                                )
+    ode_mrna_var_trace = go.Bar(x=["mRNA Variance"],
+                                y=[ode_mrna_var["mRNA"]],
+                                name="ODE Protein",
+                                marker=dict(color=["crimson"])
+                                )
 
-    mrna_var_df = pandas.DataFrame([
-        ["mRNA var", num_mrna_var["mRNA"], "Numerical"],
-        ["mRNA var", ode_mrna_var["mRNA"], "ODE"],
-        ["mRNA var", gill_mrna_var["mRNA"], "Gillespie"]
-    ], columns=["Stat Type", "Value", "Sim Type"])
+    gill_prot_mean_trace = go.Bar(x=["Protein Mean"],
+                                  y=[gill_prot_mean["Proteins"]],
+                                  name="Gillespie Protein",
+                                  marker=dict(color=["orange"])
+                                  )
+    gill_prot_var_trace = go.Bar(x=["Protein Variance"],
+                                 y=[gill_prot_var["Proteins"]],
+                                 name="Gillespie Protein",
+                                 marker=dict(color=["orange"])
+                                 )
+    gill_mrna_mean_trace = go.Bar(x=["mRNA Mean"],
+                                  y=[gill_mrna_mean["mRNA"]],
+                                  name="Gillespie mRNA",
+                                  marker=dict(color=["orange"])
+                                  )
+    gill_mrna_var_trace = go.Bar(x=["mRNA Variance"],
+                                 y=[gill_mrna_var["mRNA"]],
+                                 name="Gillespie mRNA",
+                                 marker=dict(color=["orange"])
+                                 )
 
-    prot_mean_df = pandas.DataFrame([
-        ["Protein mean", num_prot_mean["Proteins"], "Numerical"],
-        ["Protein mean", ode_prot_mean["Proteins"], "ODE"],
-        ["Protein mean", gill_prot_mean["Proteins"], "Gillespie"],
-    ], columns=["Stat Type", "Value", "Sim Type"])
+    num_mrna_mean_trace = go.Bar(x=["mRNA Mean"],
+                                 y=[num_mrna_mean["mRNA"]],
+                                 name="Numerical mRNA",
+                                 marker=dict(color=["blue"])
+                                 )
+    num_prot_mean_trace = go.Bar(x=["Protein Mean"],
+                                 y=[num_prot_mean["Proteins"]],
+                                 name="Numerical Protein",
+                                 marker=dict(color=["blue"])
+                                 )
+    num_prot_var_trace = go.Bar(x=["Protein Variance"],
+                                y=[num_prot_var["Proteins"]],
+                                name="Numerical Protein",
+                                marker=dict(color=["blue"])
+                                )
+    num_mrna_var_trace = go.Bar(x=["mRNA Variance"],
+                                y=[num_mrna_var["mRNA"]],
+                                name="Numerical mRNA",
+                                marker=dict(color=["blue"])
+                                )
 
-    prot_var_df = pandas.DataFrame([
-        ["Protein var", num_prot_var["Proteins"], "Numerical"],
-        ["Protein var", ode_prot_var["Proteins"], "ODE"],
-        ["Protein var", gill_prot_var["Proteins"], "Gillespie"],
-    ], columns=["Stat Type", "Value", "Sim Type"])
+    """Graph the Stats in a bar chart"""
+    stat_ode_num_fig = make_subplots(rows=2, cols=1,
+                                     specs=[[{"secondary_y": True}],
+                                            [{"secondary_y": True}]])
+    stat_ode_num_fig.add_trace(num_prot_mean_trace, row=1, col=1, secondary_y=False)
+    stat_ode_num_fig.add_trace(ode_prot_mean_trace, row=1, col=1, secondary_y=False)
+    stat_ode_num_fig.add_trace(num_mrna_mean_trace, row=1, col=1, secondary_y=True)
+    stat_ode_num_fig.add_trace(ode_mrna_mean_trace, row=1, col=1, secondary_y=True)
+    stat_ode_num_fig.add_trace(gill_prot_mean_trace, row=1, col=1, secondary_y=False)
+    stat_ode_num_fig.add_trace(gill_mrna_mean_trace, row=1, col=1, secondary_y=True)
 
-    stat_fig = make_subplots(rows=2, cols=2)
-    mrna_mean_fig = px.bar(mrna_mean_df,
-                           x="Stat Type",
-                           y="Value",
-                           color="Sim Type",
-                           barmode="group",
-                           labels={
-                               "Value": "Average number of Molecules"
-                           },
-                           title="mRNA mean of different simulations")
+    stat_ode_num_fig.add_trace(num_prot_var_trace, row=2, col=1, secondary_y=False)
+    stat_ode_num_fig.add_trace(ode_prot_var_trace, row=2, col=1, secondary_y=False)
+    stat_ode_num_fig.add_trace(num_mrna_var_trace, row=2, col=1, secondary_y=True)
+    stat_ode_num_fig.add_trace(ode_mrna_var_trace, row=2, col=1, secondary_y=True)
+    stat_ode_num_fig.add_trace(gill_prot_var_trace, row=2, col=1, secondary_y=False)
+    stat_ode_num_fig.add_trace(gill_mrna_var_trace, row=2, col=1, secondary_y=True)
+    stat_ode_num_fig.update_layout(
+        title="Mean and Variance comparisons between numerical, Gillespie and ODE simulations",
+        yaxis_title="Number of Molecules",
+        legend_title="Legend",
+        font=dict(
+            family="Courier New, monospace",
+            size=12,
+            color="Black"
+        )
 
-    mrna_var_fig = px.bar(mrna_var_df,
-                          x="Stat Type",
-                          y="Value",
-                          color="Sim Type",
-                          barmode="group",
-                          labels={
-                              "Value": "Variance"
-                          },
-                          title="mRNA variance of different simulations")
-
-    prot_mean_fig = px.bar(prot_mean_df,
-                           x="Stat Type",
-                           y="Value",
-                           color="Sim Type",
-                           barmode="group",
-                           labels={
-                                "Value": "Average number of molecules"
-                           },
-                           title="Protein Mean of different simulations")
-
-    prot_var_fig = px.bar(prot_var_df,
-                          x="Stat Type",
-                          y="Value",
-                          color="Sim Type",
-                          barmode="group",
-                          labels={
-                              "Value": "Variance"
-                          },
-                          title="Protein Variance of different simulations",
-                          )
-    mrna_var_fig.show()
-    mrna_mean_fig.show()
-    prot_var_fig.show()
-    prot_mean_fig.show()
-
-    # stat_ode_num_fig.write_html(stat_path)
-    # stat_ode_num_fig.write_image(stat_image_path)
+    )
+    stat_ode_num_fig.show()
+    stat_ode_num_fig.write_html(stat_path)
+    stat_ode_num_fig.write_image(stat_image_path)
 
 
 if __name__ == '__main__':
