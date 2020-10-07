@@ -28,10 +28,9 @@ class UnregulatedGeneExpression:
 
     def solved_unregulated(self, t):
         C1 = self.m0 - self.k0 / self.dm
-        C2 = self.p0 - (self.k1 * self.k0) / (self.dm * self.dp) - C1 / (self.dp - self.dm)
+        C2 = self.p0 - (self.k1 * self.k0) / (self.dm * self.dp) + C1 * self.k1 / (self.dm - self.dp)
         m_rna = C1 * math.exp(-self.dm * t) + self.k0 / self.dm
-        protein = (self.k1 * self.k0) / (self.dm * self.dp) + (C1 * math.exp(-self.dm * t)) / (self.dp - self.dm) \
-                  + C2 * math.exp(-self.dp * t)
+        protein = (self.k1 * self.k0) / (self.dm * self.dp) - (C1 * self.k1 * math.exp(-self.dm * t)) / (self.dm - self.dp) + C2 * math.exp(-self.dp * t)
         return m_rna, protein
 
     # Use scipy.odeint to evaluate
