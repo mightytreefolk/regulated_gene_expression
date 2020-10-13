@@ -44,7 +44,6 @@ class UnregulatedGeneExpression:
         # record initial conditions
         m[0] = self.m0
         p[0] = self.p0
-
         # iterate over time:
         for i in range(1, self.n):
             z = self.analytical_solution(i)
@@ -75,23 +74,21 @@ class UnregulatedGeneExpression:
         # store solutions
         m = numpy.empty_like(self.t)
         p = numpy.empty_like(self.t)
-
         # record initial conditions
+        z0 = [self.m0, self.p0]
         m[0] = self.m0
         p[0] = self.p0
-
         # solve ODE
         for i in range(1, self.n):
             # span for next time step
             tspan = [self.t[i - 1], self.t[i]]
 
             # solve for next step
-            z = odeint(self.numerical_solution, [self.m0, self.p0], tspan)
+            z = odeint(self.numerical_solution, z0, tspan)
 
             # store solution for plotting
             m[i] = z[1][0]
             p[i] = z[1][1]
-
             # next initial condition
             z0 = z[1]
 
@@ -141,14 +138,21 @@ class GillespieUnregulatedGeneExpression:
 
     def next_reaction(self, r):
         n = random.uniform(0, 1)
+        # Create an mRNA
         if 0 <= n <= r[0]:
             return [1, 0]
+        # Create a protein
         elif r[0] < n <= r[1] + r[0]:
             return [0, 1]
+        # Delete an mRNA
         elif r[1] + r[0] < n <= r[2] + r[1] + r[0]:
             return [-1, 0]
+        # Delete a protein
         elif r[2] + r[1] + r[0] < n <= 1:
             return [0, -1]
+        # no reaction occurs
+        elif r[3] + r[2] + r[1] + r[0] < n < 1:
+            return [0, 0]
 
     def time_to_next_rxn(self, a, t):
         dt = -math.log(1 - random.uniform(0, 1))/a[4]
@@ -203,6 +207,12 @@ class GillespieUnregulatedGeneExpression:
                 dfp_multiple["Run{n}".format(n=i)] = prot["Proteins"]
                 dfmt_multiple["mRNA_Run_time{t}".format(t=i)] = mrna["Time"]
                 dfpt_multiple["prot_Run_time{t}".format(t=i)] = prot["Time"]
+
+                dfm_multiple = dfm_multiple.dropna()
+                dfp_multiple = dfp_multiple.dropna()
+                dfmt_multiple = dfmt_multiple.dropna()
+                dfpt_multiple = dfpt_multiple.dropna()
+
 
             # Add average col to dataframes
             dfm_multiple["Average"], dfmt_multiple["Average_Time"] = dfm_multiple.mean(axis=1), \
