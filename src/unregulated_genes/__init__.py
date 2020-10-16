@@ -1,4 +1,4 @@
-from .model import UnregulatedGeneExpression
+from .models import UnregulatedGeneExpression, GillespieUnregulatedGeneExpression
 
 
 

@@ -1,14 +1,11 @@
 import numpy as np
 import os
 import math
-import pandas
-import plotly.express as px
 import plotly.graph_objects as go
-import json
+
 from plotly.subplots import make_subplots
 from datetime import datetime
-from scipy.integrate import odeint
-from model import UnregulatedGeneExpression, GillespieUnregulatedGeneExpression
+from .models import UnregulatedGeneExpression, GillespieUnregulatedGeneExpression
 
 n_A = 6.023E23  # Avogadro's Number
 e_coli_vol = 6.5E-16  # Liters
