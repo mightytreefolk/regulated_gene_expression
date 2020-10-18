@@ -165,6 +165,8 @@ class CellDivision(Gillespie):
                 genes.append(1)
                 divide.append("No")
 
+        time = [x/3600 for x in time]
+
         sim_df = pandas.DataFrame()
         sim_df["Time"] = time
         sim_df["Proteins"] = protein

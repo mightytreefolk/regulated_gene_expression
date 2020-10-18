@@ -46,6 +46,7 @@ def main():
 
     gillespie_cell_model = CellDivision(tmax=tmax, m0=initial_conditions[0], p0=initial_conditions[1], const=const)
     run = gillespie_cell_model.sim()
+    run = run.iloc[40000:]
 
     mrna_trace = go.Scatter(x=run["Time"],
                             y=run["mRNA"],
@@ -71,7 +72,7 @@ def main():
 
     cell_div_fig.update_layout(
         title="Cell division comparison of mRNA and Protein molecules over time",
-        xaxis_title="Time (s)",
+        xaxis_title="Time (Hours)",
         yaxis_title="Number of <b>Protein</b> Molecules",
         legend_title="Legend",
         barmode="group",
@@ -85,6 +86,59 @@ def main():
     cell_div_fig.update_shapes(dict(xref='x', yref='y'))
     cell_div_fig.show()
 
+    """Plot Histogram of mRNA"""
+    norm_mrna_hist = go.Figure()
+    hist = go.Histogram(x=run["mRNA"], histnorm='probability', name="mRNA Histogram")
+    norm_mrna_hist.add_trace(hist)
+    norm_mrna_hist.update_layout(
+        title="Probability distribution of mRNA",
+        xaxis_title="Number of Molecules",
+        yaxis_title="Probability of <b>mRNA</b> Molecules",
+        legend_title="Legend",
+        font=dict(
+            family="Courier New, monospace",
+            size=12,
+            color="Black"
+        )
+    )
+    norm_mrna_hist.show()
+
+    """Plot statistics"""
+    gill_protein_mean = go.Bar(x=["Gillespie Protein Mean"],
+                               y=[run["Proteins"].mean()],
+                               name="Gillespie Protein",
+                               marker=dict(color=["firebrick"]))
+
+    gill_mrna_mean = go.Bar(x=["Gillespie mRNA Mean"],
+                            y=[run["mRNA"].mean()],
+                            name="Gillespie mRNA",
+                            marker=dict(color=["royalblue"]))
+
+    gill_protein_var = go.Bar(x=["Gillespie Protein Variance"],
+                              y=[run["Proteins"].var()],
+                              name="Gillespie Protein",
+                              marker=dict(color=["firebrick"]))
+    gill_mrna_var = go.Bar(x=["Gillespie mRNA Variance"],
+                           y=[run["mRNA"].var()],
+                           name="Gillespie mRNA",
+                           marker=dict(color=["royalblue"]))
+
+    stat_fig = make_subplots(rows=2, cols=2)
+    stat_fig.add_trace(gill_protein_mean, row=1, col=1)
+    stat_fig.add_trace(gill_mrna_mean, row=1, col=2)
+    stat_fig.add_trace(gill_protein_var, row=2, col=1)
+    stat_fig.add_trace(gill_mrna_var, row=2, col=2)
+    stat_fig.update_layout(
+        title="Mean and Variance for cells dividing",
+        yaxis_title="Number of Molecules",
+        showlegend=False,
+        font=dict(
+            family="Courier New, monospace",
+            size=12,
+            color="Black"
+        )
+    )
+    stat_fig.show()
 
 if __name__ == '__main__':
     main()

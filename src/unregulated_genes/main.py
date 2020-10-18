@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 
 from plotly.subplots import make_subplots
 from datetime import datetime
-from .models import UnregulatedGeneExpression, GillespieUnregulatedGeneExpression
+from models import UnregulatedGeneExpression, GillespieUnregulatedGeneExpression
 
 n_A = 6.023E23  # Avogadro's Number
 e_coli_vol = 6.5E-16  # Liters
@@ -82,9 +82,9 @@ def main():
     # k0 (mRNA), k1 (protein), dm, dp
     const = [0.0167, 0.167, 0.0022, 0.00125]
     # m0, p0 [0, 0]
-    initial_conditions = [7.59, 1014.145]
+    initial_conditions = [7, 1014]
 
-    number_of_cells = 100
+    number_of_cells = 30
 
     plot_average = True
     save = True
