@@ -1,1 +1,1 @@
-from .models import Gillespie, CellDivision
+from .models import Gillespie, CellDivision, DeterministicCellDivision

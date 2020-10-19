@@ -2,6 +2,7 @@ import math
 import random
 import numpy
 import pandas
+from scipy.integrate import odeint
 
 
 class Gillespie:
@@ -178,3 +179,106 @@ class CellDivision(Gillespie):
         return sim_df
 
 
+class DeterministicCellDivision:
+    # t is a number
+    # const is an array of numbers that represent the constants of the reactions
+    def __init__(self, tmax=10, num_of_datapoints=1000, m0=0, p0=0, const=(1, 1, .1, .1)):
+        self.n = num_of_datapoints
+        self.tmax = tmax
+        self.m0 = m0
+        self.p0 = p0
+        self.k0 = const[0]
+        self.k1 = const[1]
+        self.dm = const[2]
+        self.dp = const[3]
+        self.t = numpy.linspace(0, self.tmax, self.n)  # time points
+
+    def analytical_solution(self, t, counter, current_mrna, current_prot):
+        C1 = self.m0 - self.k0 / self.dm
+        C2 = self.p0 - (self.k1 * self.k0) / (self.dm * self.dp) + C1 * self.k1 / (self.dm - self.dp)
+        if math.floor(counter) < 1800:
+            m_rna = C1 * math.exp(-self.dm * t) + self.k0 / self.dm
+            protein = (self.k1 * self.k0) / (self.dm * self.dp) - (C1 * self.k1 * math.exp(-self.dm * t)) / (self.dm - self.dp) + C2 * math.exp(-self.dp * t)
+            return m_rna, protein
+        elif 1800 <= math.floor(counter) <= 3600:
+            m_rna = C1 * math.exp(-self.dm * t) + 2 * self.k0 / self.dm
+            protein = (2 * self.k1 * self.k0)/(self.dm * (self.dm - self.dp)) + \
+                      (2 * self.k0 * self.k1)/(self.dp * (self.dm-self.dp)) - \
+                      (C1 * self.k1 * math.exp(-self.dm * t))/(self.dm - self.dp) + \
+                       C2 * math.exp(-self.dp * t)
+            return m_rna, protein
+        elif math.floor(counter) == 3601:
+            return current_mrna/2, current_prot/2
+
+    def analytical_simulation(self):
+        # store solutions
+        m = []
+        p = []
+        counters = []
+        current_mrna = self.m0
+        current_prot = self.p0
+
+        counter = 0
+        # iterate over time:
+        for i in self.t:
+            if counter <= 3600:
+                counter = counter + 1
+                z = self.analytical_solution(i, counter=counter, current_mrna=current_mrna, current_prot=current_prot)
+                current_mrna = z[0]
+                current_prot = z[1]
+                m.append(z[0])
+                p.append(z[1])
+                counters.append(counter)
+
+            elif counter > 3600:
+                counter = 0
+                z = self.analytical_solution(i, counter=counter, current_mrna=current_mrna, current_prot=current_prot)
+                current_mrna = z[0]
+                current_prot = z[1]
+                m.append(z[0])
+                p.append(z[1])
+                counters.append(counter)
+        time = [x/3600 for x in self.t]
+        sim_df = pandas.DataFrame()
+        sim_df["Time"] = time
+        sim_df["Proteins"] = p
+        sim_df["mRNA"] = m
+        # sim_df["Counter"] = counters
+        sim_df.to_csv("dataframe.csv", index=False, encoding='utf-8', sep='\t', )
+        return sim_df
+
+    def numerical_solution(self, z, t):
+        m0 = z[0]
+        p0 = z[1]
+        dmdt = self.k0 - self.dm * m0
+        dpdt = self.k1 * m0 - self.dp * p0
+        dzdt = dmdt, dpdt
+        return dzdt
+
+    def numerical_sim(self):
+        # store solutions
+        m = numpy.empty_like(self.t)
+        p = numpy.empty_like(self.t)
+        # record initial conditions
+        z0 = [self.m0, self.p0]
+        m[0] = self.m0
+        p[0] = self.p0
+        # solve ODE
+        for i in range(1, self.n):
+            # span for next time step
+            tspan = [self.t[i - 1], self.t[i]]
+
+            # solve for next step
+            z = odeint(self.numerical_solution, z0, tspan)
+
+            # store solution for plotting
+            m[i] = z[1][0]
+            p[i] = z[1][1]
+            # next initial condition
+            z0 = z[1]
+
+        sim_df = pandas.DataFrame()
+        sim_df["Time"] = self.t
+        sim_df["Proteins"] = p
+        sim_df["mRNA"] = m
+        return sim_df

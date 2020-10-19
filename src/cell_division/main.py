@@ -5,7 +5,7 @@ import pandas
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
-from models import Gillespie, CellDivision
+from models import Gillespie, CellDivision, DeterministicCellDivision
 
 n_A = 6.023E23  # Avogadro's Number
 e_coli_vol = 6.5E-16  # Liters
@@ -37,7 +37,7 @@ def division(df):
 def main():
     # seconds for sim
     tmax = 43200
-
+    number_of_datapoints = 43200
     # k0 (mRNA), k1 (protein), dm, dp
     const = [0.0167, 0.167, 0.0022, 0.00125]
 
@@ -48,6 +48,7 @@ def main():
     run = gillespie_cell_model.sim()
     run = run.iloc[40000:]
 
+    """Gillespie model of cell division"""
     mrna_trace = go.Scatter(x=run["Time"],
                             y=run["mRNA"],
                             name="mRNA",
@@ -62,7 +63,6 @@ def main():
     genes_trace = go.Scatter(x=run["Time"],
                              y=run["Gene Number"],
                              name="Number of genes")
-
     cell_div_fig = make_subplots(specs=[[{"secondary_y": True}]])
     cell_div_fig.add_trace(mrna_trace, secondary_y=True)
     cell_div_fig.add_trace(protein_trace, secondary_y=False)
@@ -139,6 +139,43 @@ def main():
         )
     )
     stat_fig.show()
+
+    """Plot Analytical model"""
+    deterministic = DeterministicCellDivision(tmax=tmax,
+                                              num_of_datapoints=number_of_datapoints,
+                                              m0=initial_conditions[0],
+                                              p0=initial_conditions[1],
+                                              const=const)
+
+    deterministic_run = deterministic.analytical_simulation()
+    deterministic_run = deterministic_run.iloc[12600:]
+    deterministic_fig = make_subplots(specs=[[{"secondary_y": True}]])
+    mrna_trace = go.Scatter(x=deterministic_run["Time"],
+                            y=deterministic_run["mRNA"],
+                            name="Deterministic mRNA")
+
+    prot_trace = go.Scatter(x=deterministic_run["Time"],
+                            y=deterministic_run["Proteins"],
+                            name="Deterministic Proteins")
+
+    deterministic_fig.add_trace(mrna_trace, secondary_y=True)
+    deterministic_fig.add_trace(prot_trace, secondary_y=False)
+    deterministic_fig.update_layout(
+        title="Cell division comparison of mRNA and Protein molecules over time",
+        xaxis_title="Time (Hours)",
+        yaxis_title="Number of <b>Protein</b> Molecules",
+        legend_title="Legend",
+        barmode="group",
+        font=dict(
+            family="Courier New, monospace",
+            size=12,
+            color="Black"
+        )
+    )
+    deterministic_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", secondary_y=True)
+    deterministic_fig.show()
+
+
 
 if __name__ == '__main__':
     main()
