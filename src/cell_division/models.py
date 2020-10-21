@@ -2,6 +2,8 @@ import math
 import random
 import numpy
 import pandas
+import os
+from datetime import datetime
 from scipy.integrate import odeint
 
 
@@ -48,9 +50,9 @@ class Gillespie:
         # Delete an mRNA
         elif r[1] + r[0] < n <= r[2] + r[1] + r[0]:
             return [-1, 0]
-        # Delete a protein
-        elif r[2] + r[1] + r[0] < n <= 1:
-            return [0, -1]
+        # # Delete a protein
+        # elif r[2] + r[1] + r[0] < n <= 1:
+        #     return [0, -1]
         # no reaction occurs
         elif r[3] + r[2] + r[1] + r[0] < n < 1:
             return [0, 0]
@@ -68,8 +70,9 @@ class Gillespie:
 
 
 class CellDivision(Gillespie):
-    def __init__(self, tmax=10, m0=0, p0=0, const=None):
+    def __init__(self, tmax=10, m0=0, p0=0, const=None, number_of_sims=1):
         super().__init__(tmax, m0, p0, const)
+        self.number_of_sims = number_of_sims
 
     def two_genes_propensities(self, Nm, Np):
         a1 = 2 * self.k0
@@ -175,8 +178,17 @@ class CellDivision(Gillespie):
         sim_df["Gene Number"] = genes
         sim_df["Divide"] = divide
         sim_df["Counter"] = counter0
-        sim_df.to_csv("dataframe.csv", index=False, encoding='utf-8', sep='\t',)
         return sim_df
+
+    def multiple_cells(self):
+        timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+        directory = "Dir_with_runs-{time}".format(time=timestamp)
+        os.mkdir(directory)
+        for i in range(0, self.number_of_sims):
+            path = os.path.join(directory, "Run{n}.csv".format(n=i))
+            sim = self.sim()
+            sim.to_csv(path, index=False, encoding='utf-8', sep='\t',)
+        return directory
 
 
 class DeterministicCellDivision:
@@ -243,8 +255,7 @@ class DeterministicCellDivision:
         sim_df["Time"] = time
         sim_df["Proteins"] = p
         sim_df["mRNA"] = m
-        # sim_df["Counter"] = counters
-        sim_df.to_csv("dataframe.csv", index=False, encoding='utf-8', sep='\t', )
+        sim_df["Counter"] = counters
         return sim_df
 
     def numerical_solution(self, z, t):

@@ -1,10 +1,9 @@
-import numpy as np
 import os
-import math
 import pandas
 import plotly.graph_objects as go
+import numpy
 from plotly.subplots import make_subplots
-from datetime import datetime
+import glob
 from models import Gillespie, CellDivision, DeterministicCellDivision
 
 n_A = 6.023E23  # Avogadro's Number
@@ -33,46 +32,23 @@ def division(df):
     return traces
 
 
+def analytical_plot(run, save):
+    """Plot Analytical model"""
+    deterministic_run = run.analytical_simulation()
+    deterministic_run = deterministic_run.iloc[12600:]
+    deterministic_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02)
+    mrna_trace = go.Scatter(x=deterministic_run["Time"],
+                            y=deterministic_run["mRNA"],
+                            name="mRNA")
 
-def main():
-    # seconds for sim
-    tmax = 43200
-    number_of_datapoints = 43200
-    # k0 (mRNA), k1 (protein), dm, dp
-    const = [0.0167, 0.167, 0.0022, 0.00125]
+    prot_trace = go.Scatter(x=deterministic_run["Time"],
+                            y=deterministic_run["Proteins"],
+                            name="Proteins")
 
-    # m0, p0 [0, 0]
-    initial_conditions = [7, 1014]
-
-    gillespie_cell_model = CellDivision(tmax=tmax, m0=initial_conditions[0], p0=initial_conditions[1], const=const)
-    run = gillespie_cell_model.sim()
-    run = run.iloc[40000:]
-
-    """Gillespie model of cell division"""
-    mrna_trace = go.Scatter(x=run["Time"],
-                            y=run["mRNA"],
-                            name="mRNA",
-                            line=dict(color='royalblue',)
-                            )
-    protein_trace = go.Scatter(x=run["Time"],
-                               y=run["Proteins"],
-                               name="Protein",
-                               line=dict(color='firebrick', )
-                               )
-
-    genes_trace = go.Scatter(x=run["Time"],
-                             y=run["Gene Number"],
-                             name="Number of genes")
-    cell_div_fig = make_subplots(specs=[[{"secondary_y": True}]])
-    cell_div_fig.add_trace(mrna_trace, secondary_y=True)
-    cell_div_fig.add_trace(protein_trace, secondary_y=False)
-    cell_div_fig.add_trace(genes_trace, secondary_y=True)
-    for i in division(run):
-        cell_div_fig.add_shape(i, secondary_y=True)
-
-    cell_div_fig.update_layout(
-        title="Cell division comparison of mRNA and Protein molecules over time",
-        xaxis_title="Time (Hours)",
+    deterministic_fig.add_trace(mrna_trace, row=2, col=1)
+    deterministic_fig.add_trace(prot_trace, row=1, col=1)
+    deterministic_fig.update_layout(
+        title="Analytical Cell division comparison of mRNA and Protein molecules over time",
         yaxis_title="Number of <b>Protein</b> Molecules",
         legend_title="Legend",
         barmode="group",
@@ -82,54 +58,54 @@ def main():
             color="Black"
         )
     )
-    cell_div_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", secondary_y=True)
-    cell_div_fig.update_shapes(dict(xref='x', yref='y'))
-    cell_div_fig.show()
+    deterministic_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", row=2, col=1)
+    deterministic_fig.update_xaxes(title_text="Time (Hours)", row=2, col=1)
+    deterministic_fig.show()
+    if save:
+        deterministic_fig.write_html("Deterministic.html")
+        deterministic_fig.write_image("Deterministic.png")
+    else:
+        pass
 
-    """Plot Histogram of mRNA"""
-    norm_mrna_hist = go.Figure()
-    hist = go.Histogram(x=run["mRNA"], histnorm='probability', name="mRNA Histogram")
-    norm_mrna_hist.add_trace(hist)
-    norm_mrna_hist.update_layout(
-        title="Probability distribution of mRNA",
-        xaxis_title="Number of Molecules",
-        yaxis_title="Probability of <b>mRNA</b> Molecules",
-        legend_title="Legend",
-        font=dict(
-            family="Courier New, monospace",
-            size=12,
-            color="Black"
-        )
-    )
-    norm_mrna_hist.show()
 
-    """Plot statistics"""
-    gill_protein_mean = go.Bar(x=["Gillespie Protein Mean"],
-                               y=[run["Proteins"].mean()],
-                               name="Gillespie Protein",
-                               marker=dict(color=["firebrick"]))
+def histogram_plot(number_of_runs, sim, save):
+    norm_hist = make_subplots(rows=2, cols=1, vertical_spacing=0.02)
+    norm_hist.update_layout(
+            title="Probability distribution of mRNA and Protein of {n} cell(s)".format(n=number_of_runs),
+            yaxis_title="Probability of <b>mRNA</b> Molecules",
+            legend_title="Legend",
+            font=dict(
+                family="Courier New, monospace",
+                size=12,
+                color="Black"))
+    norm_hist.update_yaxes(title_text="Probability of <b>Protein</b>", row=2, col=1)
+    norm_hist.update_xaxes(title_text="Number of <b>Molecules</b>", row=2, col=1)
+    """Get data from runs"""
+    path = os.path.join(sim, "*.csv")
+    mrna = []
+    prot = []
+    for fname in glob.glob(path):
+        df = pandas.read_csv(fname, sep='\t')
+        mrna.extend(df["mRNA"].tolist())
+        prot.extend(df["Proteins"].tolist())
+    mrna_hist = go.Histogram(x=mrna, histnorm='probability', name="mRNA Histogram")
+    prot_hist = go.Histogram(x=prot, histnorm='probability', name="Protein Histogram")
+    norm_hist.add_trace(mrna_hist, row=1, col=1)
+    norm_hist.add_trace(prot_hist, row=2, col=1)
+    norm_hist.show()
+    if save:
+        html_file = os.path.join(sim, "hist.html")
+        png_file = os.path.join(sim, "hist.png")
+        norm_hist.write_html(html_file)
+        norm_hist.write_image(png_file)
+    else:
+        pass
 
-    gill_mrna_mean = go.Bar(x=["Gillespie mRNA Mean"],
-                            y=[run["mRNA"].mean()],
-                            name="Gillespie mRNA",
-                            marker=dict(color=["royalblue"]))
 
-    gill_protein_var = go.Bar(x=["Gillespie Protein Variance"],
-                              y=[run["Proteins"].var()],
-                              name="Gillespie Protein",
-                              marker=dict(color=["firebrick"]))
-    gill_mrna_var = go.Bar(x=["Gillespie mRNA Variance"],
-                           y=[run["mRNA"].var()],
-                           name="Gillespie mRNA",
-                           marker=dict(color=["royalblue"]))
-
-    stat_fig = make_subplots(rows=2, cols=2)
-    stat_fig.add_trace(gill_protein_mean, row=1, col=1)
-    stat_fig.add_trace(gill_mrna_mean, row=1, col=2)
-    stat_fig.add_trace(gill_protein_var, row=2, col=1)
-    stat_fig.add_trace(gill_mrna_var, row=2, col=2)
+def plot_statistics(number_of_runs, sim, save):
+    stat_fig = make_subplots(rows=2, cols=2, vertical_spacing=0.02)
     stat_fig.update_layout(
-        title="Mean and Variance for cells dividing",
+        title="Mean and Variance for {n} cell(s) dividing".format(n=number_of_runs),
         yaxis_title="Number of Molecules",
         showlegend=False,
         font=dict(
@@ -138,43 +114,152 @@ def main():
             color="Black"
         )
     )
+    path = os.path.join(sim, "*.csv")
+    mrna_mean = []
+    mrna_var = []
+    prot_mean = []
+    prot_var = []
+    for fname in glob.glob(path):
+        df = pandas.read_csv(fname, sep='\t')
+        mrna_mean.append(df["mRNA"].mean())
+        mrna_var.append(df["mRNA"].var())
+        prot_mean.append(df["Proteins"].mean())
+        prot_var.append(df["Proteins"].var())
+    if number_of_runs > 1:
+        prot_mean = [numpy.array(prot_mean).mean()]
+        prot_var = [numpy.array(prot_var).var()]
+        mrna_mean = [numpy.array(mrna_mean).mean()]
+        mrna_var = [numpy.array(mrna_var).var()]
+    else:
+        pass
+    gill_protein_mean = go.Bar(x=["Gillespie Protein Mean"],
+                               y=prot_mean,
+                               text=prot_mean,
+                               name="Gillespie Protein",
+                               marker=dict(color=["firebrick"]))
+
+    gill_mrna_mean = go.Bar(x=["Gillespie mRNA Mean"],
+                            y=mrna_mean,
+                            text=mrna_mean,
+                            name="Gillespie mRNA",
+                            marker=dict(color=["royalblue"]))
+
+    gill_protein_var = go.Bar(x=["Gillespie Protein Variance"],
+                              y=prot_var,
+                              text=prot_var,
+                              name="Gillespie Protein",
+                              marker=dict(color=["firebrick"]))
+    gill_mrna_var = go.Bar(x=["Gillespie mRNA Variance"],
+                           y=mrna_var,
+                           text=mrna_var,
+                           name="Gillespie mRNA",
+                           marker=dict(color=["royalblue"]))
+    stat_fig.add_trace(gill_protein_mean, row=1, col=1)
+    stat_fig.add_trace(gill_mrna_mean, row=1, col=2)
+    stat_fig.add_trace(gill_protein_var, row=2, col=1)
+    stat_fig.add_trace(gill_mrna_var, row=2, col=2)
     stat_fig.show()
+    if save:
+        html_file = os.path.join(sim, "stats.html")
+        png_file = os.path.join(sim, "stats.png")
+        stat_fig.write_html(html_file)
+        stat_fig.write_image(png_file)
+    else:
+        pass
 
-    """Plot Analytical model"""
-    deterministic = DeterministicCellDivision(tmax=tmax,
-                                              num_of_datapoints=number_of_datapoints,
-                                              m0=initial_conditions[0],
-                                              p0=initial_conditions[1],
-                                              const=const)
 
-    deterministic_run = deterministic.analytical_simulation()
-    deterministic_run = deterministic_run.iloc[12600:]
-    deterministic_fig = make_subplots(specs=[[{"secondary_y": True}]])
-    mrna_trace = go.Scatter(x=deterministic_run["Time"],
-                            y=deterministic_run["mRNA"],
-                            name="Deterministic mRNA")
-
-    prot_trace = go.Scatter(x=deterministic_run["Time"],
-                            y=deterministic_run["Proteins"],
-                            name="Deterministic Proteins")
-
-    deterministic_fig.add_trace(mrna_trace, secondary_y=True)
-    deterministic_fig.add_trace(prot_trace, secondary_y=False)
-    deterministic_fig.update_layout(
+def plot_gillespie(number_of_runs, sim, save):
+    cell_div_fig = make_subplots(specs=[[{"secondary_y": True}],
+                                        [{"secondary_y": False}]],
+                                 rows=2,
+                                 cols=1,
+                                 row_heights=[0.8, 0.2],
+                                 shared_xaxes=True,
+                                 vertical_spacing=0.02)
+    cell_div_fig.update_layout(
         title="Cell division comparison of mRNA and Protein molecules over time",
-        xaxis_title="Time (Hours)",
         yaxis_title="Number of <b>Protein</b> Molecules",
         legend_title="Legend",
-        barmode="group",
         font=dict(
             family="Courier New, monospace",
             size=12,
             color="Black"
         )
     )
-    deterministic_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", secondary_y=True)
-    deterministic_fig.show()
+    cell_div_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", secondary_y=True)
+    cell_div_fig.update_xaxes(title_text="Time (Hours)", row=2, col=1)
+    cell_div_fig.update_yaxes(title_text="Number of <b>Genes</b>", row=2, col=1)
 
+    path = os.path.join(sim, "*.csv")
+    if number_of_runs == 1:
+        for fname in glob.glob(path):
+            df = pandas.read_csv(fname, sep='\t')
+        """Gillespie model of cell division"""
+        mrna_trace = go.Scatter(x=df["Time"],
+                                y=df["mRNA"],
+                                name="mRNA",
+                                line=dict(color='royalblue', )
+                                )
+        protein_trace = go.Scatter(x=df["Time"],
+                                   y=df["Proteins"],
+                                   name="Protein",
+                                   line=dict(color='firebrick', )
+                                   )
+
+        genes_trace = go.Scatter(x=df["Time"],
+                                 y=df["Gene Number"],
+                                 name="Number of genes")
+
+        cell_div_fig.add_trace(mrna_trace, secondary_y=True, row=1, col=1)
+        cell_div_fig.add_trace(protein_trace, secondary_y=False, row=1, col=1)
+        cell_div_fig.add_trace(genes_trace, row=2, col=1)
+        for i in division(df):
+            cell_div_fig.add_shape(i, row=1, col=1, )
+        # cell_div_fig.update_shapes(dict(xref='x', yref='y'))
+        cell_div_fig.show()
+    else:
+        pass
+    if save:
+        html_path = os.path.join(sim, "Gillespie.html")
+        image_path = os.path.join(sim, "Gillespie.png")
+        cell_div_fig.write_image(image_path)
+        cell_div_fig.write_html(html_path)
+    else:
+        pass
+
+def main():
+    """Constants to be changed by user"""
+    # seconds for sim
+    tmax = 43200
+    number_of_datapoints = 43200
+    # k0 (mRNA), k1 (protein), dm, dp
+    const = [0.0167, 0.167, 0.0022, 0]
+
+    # m0, p0 [0, 0]
+    initial_conditions = [7, 1014]
+
+    number_of_simulations = 1
+
+    save = True
+
+    """Initiate deterministic object"""
+    # deterministic = DeterministicCellDivision(tmax=tmax,
+    #                                           num_of_datapoints=number_of_datapoints,
+    #                                           m0=initial_conditions[0],
+    #                                           p0=initial_conditions[1],
+    #                                           const=const)
+    # analytical_plot(deterministic, save=save)
+
+    """Begin Gillespie Simulation"""
+    gillespie_cell_model = CellDivision(tmax=tmax, m0=initial_conditions[0], p0=initial_conditions[1], const=const,
+                                        number_of_sims=number_of_simulations)
+
+    run = gillespie_cell_model.multiple_cells()
+
+    """Different plots for the Gillespie data"""
+    histogram_plot(number_of_simulations, sim=run, save=save)
+    plot_statistics(number_of_simulations, sim=run, save=save)
+    plot_gillespie(number_of_runs=number_of_simulations, sim=run, save=save)
 
 
 if __name__ == '__main__':
