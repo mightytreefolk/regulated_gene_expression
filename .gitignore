@@ -131,3 +131,6 @@ dmypy.json
 # Plots and Images
 plots/
 .idea/
+
+# Folders with Runs
+Dir_with_runs-*/

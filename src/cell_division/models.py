@@ -70,9 +70,11 @@ class Gillespie:
 
 
 class CellDivision(Gillespie):
-    def __init__(self, tmax=10, m0=0, p0=0, const=None, number_of_sims=1):
+    def __init__(self, tmax=10, m0=0, p0=0, const=None, number_of_sims=1, cell_cycle=6300):
         super().__init__(tmax, m0, p0, const)
         self.number_of_sims = number_of_sims
+        self.two_genes = cell_cycle/2
+        self.divide = cell_cycle
 
     def two_genes_propensities(self, Nm, Np):
         a1 = 2 * self.k0
@@ -118,6 +120,8 @@ class CellDivision(Gillespie):
         divide = ["No"]
         counter0 = [0]
         counter = 0
+        clock = 0
+        cell_cycle = [0]
         t = 0  # start time
         r0 = self.initial_state()
         g0 = 1
@@ -127,13 +131,13 @@ class CellDivision(Gillespie):
         time.append(t)
         while t <= self.tmax:
             # Refactor this. Not doing what I want it to.
-            if 1800 <= counter <= 3601:
+            if self.two_genes <= counter <= self.divide:
                 genes.append(2)
                 a = self.two_genes_propensities(r0[0], r0[1])
                 next_rxn = self.next_reaction(a)
                 sim_time = self.time_to_next_rxn(a, t)
                 t = sim_time[0]
-                if 3599 <= counter <= 3601:
+                if counter == self.divide:
                     r = self.division_of_molecules(r0)
                     mrna.append(r[0])
                     protein.append(r[1])
@@ -141,7 +145,9 @@ class CellDivision(Gillespie):
                     r0 = r
                     # Mark relevant data
                     counter = 0
+                    clock = 0
                     counter0.append(counter)
+                    cell_cycle.append(clock)
                     divide.append("Yes")
                 else:
                     r = self.update_reaction_vector(r0, next_rxn)
@@ -150,8 +156,10 @@ class CellDivision(Gillespie):
                     time.append(t)
                     r0 = r
                     # Mark relevant data
-                    counter = sim_time[1] + counter
+                    counter = counter + 1
+                    clock = sim_time[1] + clock
                     counter0.append(counter)
+                    cell_cycle.append(clock)
                     divide.append("No")
             else:
                 a = self.update_propensities(r0[0], r0[1])
@@ -164,12 +172,12 @@ class CellDivision(Gillespie):
                 time.append(t)
                 r0 = r
                 # Mark relevant data
-                counter = sim_time[1] + counter
+                counter = counter + 1
+                clock = sim_time[1] + clock
                 counter0.append(counter)
+                cell_cycle.append(clock)
                 genes.append(1)
                 divide.append("No")
-
-
 
         sim_df = pandas.DataFrame()
         sim_df["Seconds"] = time
@@ -181,6 +189,7 @@ class CellDivision(Gillespie):
         sim_df["Gene Number"] = genes
         sim_df["Divide"] = divide
         sim_df["Counter"] = counter0
+        sim_df["Clock"] = cell_cycle
         return sim_df
 
     def multiple_cells(self):
