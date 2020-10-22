@@ -169,9 +169,12 @@ class CellDivision(Gillespie):
                 genes.append(1)
                 divide.append("No")
 
-        time = [x/3600 for x in time]
+
 
         sim_df = pandas.DataFrame()
+        sim_df["Seconds"] = time
+        time = [x / 3600 for x in time]
+        sim_df["Hours"] = time
         sim_df["Time"] = time
         sim_df["Proteins"] = protein
         sim_df["mRNA"] = mrna
@@ -258,10 +261,18 @@ class DeterministicCellDivision:
         sim_df["Counter"] = counters
         return sim_df
 
-    def numerical_solution(self, z, t):
+    def numerical_solution_1_gene(self, z, t):
         m0 = z[0]
         p0 = z[1]
         dmdt = self.k0 - self.dm * m0
+        dpdt = self.k1 * m0 - self.dp * p0
+        dzdt = dmdt, dpdt
+        return dzdt
+
+    def numerical_solution_2_gene(self, z, t):
+        m0 = z[0]
+        p0 = z[1]
+        dmdt = 2 * self.k0 - self.dm * m0
         dpdt = self.k1 * m0 - self.dp * p0
         dzdt = dmdt, dpdt
         return dzdt
@@ -274,22 +285,47 @@ class DeterministicCellDivision:
         z0 = [self.m0, self.p0]
         m[0] = self.m0
         p[0] = self.p0
+        counter = 0
+        counters = []
+        counters.append(counter)
         # solve ODE
         for i in range(1, self.n):
-            # span for next time step
-            tspan = [self.t[i - 1], self.t[i]]
+            if counter < 1800:
+                # span for next time step
+                tspan = [self.t[i - 1], self.t[i]]
 
-            # solve for next step
-            z = odeint(self.numerical_solution, z0, tspan)
+                # solve for next step
+                z = odeint(self.numerical_solution_1_gene, z0, tspan)
 
-            # store solution for plotting
-            m[i] = z[1][0]
-            p[i] = z[1][1]
-            # next initial condition
-            z0 = z[1]
+                # store solution for plotting
+                m[i] = z[1][0]
+                p[i] = z[1][1]
+                # next initial condition
+                z0 = z[1]
+                counter = counter + 1
+                counters.append(counter)
+            elif 1800 <= counter < 3600:
+                tspan = [self.t[i - 1], self.t[i]]
+                # solve for next step
+                z = odeint(self.numerical_solution_2_gene, z0, tspan)
+                # store solution for plotting
+                m[i] = z[1][0]
+                p[i] = z[1][1]
+                # next initial condition
+                z0 = z[1]
+                counter = counter + 1
+                counters.append(counter)
+            elif counter >= 3600:
+                m[i] = m[i-1]/2
+                p[i] = p[i-1]/2
+                z0 = m[i], p[i]
+                counter = 0
+                counters.append(counter)
 
+        time = [x / 3600 for x in self.t]
         sim_df = pandas.DataFrame()
-        sim_df["Time"] = self.t
+        sim_df["Counters"] = counters
+        sim_df["Time"] = time
         sim_df["Proteins"] = p
         sim_df["mRNA"] = m
         return sim_df

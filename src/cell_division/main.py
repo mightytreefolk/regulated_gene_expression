@@ -32,6 +32,27 @@ def division(df):
     return traces
 
 
+def combine_cell_cycles(sim):
+    path = os.path.join(sim, "*.csv")
+    for fname in glob.glob(path):
+        df = pandas.read_csv(fname, sep='\t')
+    result = zip(df["Counter"], df["mRNA"])
+    cell_cycles = pandas.DataFrame()
+    mrna = []
+    l = []
+    for i in result:
+        if i[0] == 0:
+            mrna.append(len(l))
+            l.clear()
+        else:
+            l.append(i[1])
+    mrna.pop(0)
+    print(mrna)
+    print(numpy.array(mrna).mean())
+
+
+
+
 def analytical_plot(run, save):
     """Plot Analytical model"""
     deterministic_run = run.analytical_simulation()
@@ -64,6 +85,41 @@ def analytical_plot(run, save):
     if save:
         deterministic_fig.write_html("Deterministic.html")
         deterministic_fig.write_image("Deterministic.png")
+    else:
+        pass
+
+
+def numerical_plot(run, save):
+    """Plot Analytical model"""
+    numerical_run = run.numerical_sim()
+    numerical_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02)
+    mrna_trace = go.Scatter(x=numerical_run["Time"],
+                            y=numerical_run["mRNA"],
+                            name="mRNA")
+
+    prot_trace = go.Scatter(x=numerical_run["Time"],
+                            y=numerical_run["Proteins"],
+                            name="Proteins")
+
+    numerical_fig.add_trace(mrna_trace, row=2, col=1)
+    numerical_fig.add_trace(prot_trace, row=1, col=1)
+    numerical_fig.update_layout(
+        title="Numerical Cell division comparison of mRNA and Protein molecules over time",
+        yaxis_title="Number of <b>Protein</b> Molecules",
+        legend_title="Legend",
+        barmode="group",
+        font=dict(
+            family="Courier New, monospace",
+            size=12,
+            color="Black"
+        )
+    )
+    numerical_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", row=2, col=1)
+    numerical_fig.update_xaxes(title_text="Time (Hours)", row=2, col=1)
+    numerical_fig.show()
+    if save:
+        numerical_fig.write_html("numerical.html")
+        numerical_fig.write_image("numerical.png")
     else:
         pass
 
@@ -242,7 +298,15 @@ def main():
 
     save = True
 
-    """Initiate deterministic object"""
+    # """Initiate Numerical sim"""
+    # numerical = DeterministicCellDivision(tmax=tmax,
+    #                                       num_of_datapoints=number_of_datapoints,
+    #                                       m0=initial_conditions[0],
+    #                                       p0=initial_conditions[1],
+    #                                       const=const)
+    # numerical_plot(numerical, save)
+    #
+    # """Initiate Analytical sim"""
     # deterministic = DeterministicCellDivision(tmax=tmax,
     #                                           num_of_datapoints=number_of_datapoints,
     #                                           m0=initial_conditions[0],
@@ -255,11 +319,12 @@ def main():
                                         number_of_sims=number_of_simulations)
 
     run = gillespie_cell_model.multiple_cells()
-
-    """Different plots for the Gillespie data"""
-    histogram_plot(number_of_simulations, sim=run, save=save)
-    plot_statistics(number_of_simulations, sim=run, save=save)
-    plot_gillespie(number_of_runs=number_of_simulations, sim=run, save=save)
+    combine_cell_cycles(sim=run)
+    #
+    # """Different plots for the Gillespie data"""
+    # histogram_plot(number_of_simulations, sim=run, save=save)
+    # plot_statistics(number_of_simulations, sim=run, save=save)
+    # plot_gillespie(number_of_runs=number_of_simulations, sim=run, save=save)
 
 
 if __name__ == '__main__':
