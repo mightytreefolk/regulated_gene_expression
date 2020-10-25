@@ -50,9 +50,9 @@ class Gillespie:
         # Delete an mRNA
         elif r[1] + r[0] < n <= r[2] + r[1] + r[0]:
             return [-1, 0]
-        # # Delete a protein
-        # elif r[2] + r[1] + r[0] < n <= 1:
-        #     return [0, -1]
+        # Delete a protein
+        elif r[2] + r[1] + r[0] < n <= r[3] + r[2] + r[1] + r[0]:
+            return [0, -1]
         # no reaction occurs
         elif r[3] + r[2] + r[1] + r[0] < n < 1:
             return [0, 0]
