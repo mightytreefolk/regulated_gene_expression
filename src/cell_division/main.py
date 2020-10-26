@@ -1,7 +1,9 @@
 import os
 import pandas
 import uuid
+import math
 import plotly.graph_objects as go
+from scipy.stats import sem
 import numpy
 from plotly.subplots import make_subplots
 import glob
@@ -21,7 +23,7 @@ def division(df):
                 x0=i[0],
                 y0=0,
                 x1=i[0],
-                y1=2500,
+                y1=25,
                 line=dict(
                     color="Black",
                     width=1,
@@ -31,6 +33,11 @@ def division(df):
         else:
             pass
     return traces
+
+
+def gaussian(u, s, x):
+    gauss = (1/(s * math.sqrt(2 * math.pi))) * math.exp(-0.5 * ((x-u)/s)**2)
+    return gauss
 
 
 def average_cycle_times(sim, save):
@@ -48,6 +55,25 @@ def average_cycle_times(sim, save):
 
     time_at_division = [x / 60 for x in time_at_division]
     time_at_two_genes =[x / 60 for x in time_at_two_genes]
+    print("Max time division: ", max(time_at_division))
+    print("Min time division: ", min(time_at_division))
+    print("Division mean: ", numpy.array(time_at_division).mean())
+    print("Division std: ", numpy.array(time_at_division).std())
+
+    print("Max time at 2 genes: ", max(time_at_two_genes))
+    print("Min time at 2 genes: ", min(time_at_two_genes))
+    print("Two genes mean: ", numpy.array(time_at_two_genes).mean())
+    print("Two genes std: ", numpy.array(time_at_two_genes).std())
+    genes_mean = numpy.array(time_at_two_genes).mean()
+    genes_std = numpy.array(time_at_two_genes).std()
+    divide_mean = numpy.array(time_at_division).mean()
+    divide_std = numpy.array(time_at_division).std()
+    gauss_divide = []
+    gauss_genes = []
+    for i in numpy.sort(time_at_division):
+        gauss_divide.append(gaussian(u=divide_mean, s=divide_std, x=i))
+    for i in numpy.sort(time_at_two_genes):
+        gauss_genes.append(gaussian(u=genes_mean, s=genes_std, x=i))
 
     fig = make_subplots(rows=2, cols=1)
     fig.update_yaxes(title_text="Probability of <b>Two Genes</b> (minutes)", row=2, col=1)
@@ -62,13 +88,24 @@ def average_cycle_times(sim, save):
             color="Black"))
 
     division_trace = go.Histogram(x=time_at_division, histnorm='probability', name="Division Histogram")
+    division_gauss_trace = go.Scatter(x=numpy.sort(time_at_division), y=gauss_divide,  showlegend=False)
     two_gene_trace = go.Histogram(x=time_at_two_genes, histnorm='probability', name="2 Genes Histogram")
+    two_gene_gauss_trace = go.Scatter(x=numpy.sort(time_at_two_genes), y=gauss_genes,  showlegend=False)
     fig.add_trace(division_trace, row=1, col=1)
+    fig.add_trace(division_gauss_trace, row=1, col=1,)
     fig.add_trace(two_gene_trace, row=2, col=1)
+    fig.add_trace(two_gene_gauss_trace, row=2, col=1)
     fig.show()
+    if save:
+        html = os.path.join(sim, "Average_times.html")
+        image = os.path.join(sim, "Average_times.png")
+        fig.write_html(html)
+        fig.write_image(image)
+    else:
+        pass
 
 
-def combine_cell_cycles(sim, save):
+def combine_cell_cycles(sim, save, const):
     path = os.path.join(sim, "*.csv")
     for fname in glob.glob(path):
         df = pandas.read_csv(fname, sep='\t')
@@ -76,6 +113,7 @@ def combine_cell_cycles(sim, save):
     ml = []
     tl = []
     pl = []
+    number_of_cycles = []
     mrna_cell_cycles = pandas.DataFrame()
     protein_cell_cycles = pandas.DataFrame()
     counter = pandas.DataFrame()
@@ -86,6 +124,7 @@ def combine_cell_cycles(sim, save):
             mrna_cell_cycles["Cycle_{}".format(x)] = ml
             protein_cell_cycles["Cycle_{}".format(x)] = pl
             counter["Cycle_{}".format(x)] = tl
+            number_of_cycles.append(i[0])
             ml.clear()
             tl.clear()
             pl.clear()
@@ -124,11 +163,11 @@ def combine_cell_cycles(sim, save):
                                           num_of_datapoints=3600,
                                           m0=7.59,
                                           p0=1014.145,
-                                          const=[0.0167, 0.167, 0.0022, 0.0])
+                                          const=const)
     numerical_run = numerical.numerical_sim()
 
     """Just graphing things"""
-    fig = make_subplots(rows=2, cols=1, vertical_spacing=0.02)
+    fig = make_subplots(rows=2, cols=1, vertical_spacing=0.02, shared_xaxes=True)
     # Making traces for plot
     mrna_std_minus_trace = go.Scatter(x=mrna_cell_cycles["Counter"],
                                       y=mrna_std_minus,
@@ -186,7 +225,7 @@ def combine_cell_cycles(sim, save):
     fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", row=2, col=1)
     fig.update_xaxes(title_text="Time (Hours)", row=2, col=1)
     fig.update_layout(
-        title="Cell cycle average of Protein and mRNA over time",
+        title="Cell cycle average of Protein and mRNA over time for {n} cell cycles".format(n=len(number_of_cycles)),
         yaxis_title="Number of <b>Protein</b> Molecules",
         legend_title="Legend",
         font=dict(
@@ -201,42 +240,6 @@ def combine_cell_cycles(sim, save):
         image = os.path.join(sim, "Cell_cycle_average.png")
         fig.write_html(html)
         fig.write_image(image)
-    else:
-        pass
-
-
-def analytical_plot(run, save):
-    """Plot Analytical model"""
-    deterministic_run = run.analytical_simulation()
-    deterministic_run = deterministic_run.iloc[12600:]
-    deterministic_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02)
-    mrna_trace = go.Scatter(x=deterministic_run["Time"],
-                            y=deterministic_run["mRNA"],
-                            name="mRNA")
-
-    prot_trace = go.Scatter(x=deterministic_run["Time"],
-                            y=deterministic_run["Proteins"],
-                            name="Proteins")
-
-    deterministic_fig.add_trace(mrna_trace, row=2, col=1)
-    deterministic_fig.add_trace(prot_trace, row=1, col=1)
-    deterministic_fig.update_layout(
-        title="Analytical Cell division comparison of mRNA and Protein molecules over time",
-        yaxis_title="Number of <b>Protein</b> Molecules",
-        legend_title="Legend",
-        barmode="group",
-        font=dict(
-            family="Courier New, monospace",
-            size=12,
-            color="Black"
-        )
-    )
-    deterministic_fig.update_yaxes(title_text="Number of <b>mRNA</b> Molecules", row=2, col=1)
-    deterministic_fig.update_xaxes(title_text="Time (Hours)", row=2, col=1)
-    deterministic_fig.show()
-    if save:
-        deterministic_fig.write_html("Deterministic.html")
-        deterministic_fig.write_image("Deterministic.png")
     else:
         pass
 
@@ -310,42 +313,40 @@ def histogram_plot(sim, save):
         pass
 
 
-def plot_statistics(number_of_runs, sim, save):
+def plot_statistics(sim, save, const):
     stat_fig = make_subplots(rows=2, cols=2, vertical_spacing=0.02)
-    stat_fig.update_layout(
-        title="Mean and Variance for dividing",
-        yaxis_title="Number of Molecules",
-        showlegend=False,
-        font=dict(
-            family="Courier New, monospace",
-            size=12,
-            color="Black"
-        )
-    )
     path = os.path.join(sim, "*.csv")
-    mrna_mean = []
-    mrna_var = []
-    prot_mean = []
-    prot_var = []
+    mrna_cell_cycles = pandas.DataFrame()
+    protein_cell_cycles = pandas.DataFrame()
+    ml = []
+    pl = []
     for fname in glob.glob(path):
         df = pandas.read_csv(fname, sep='\t')
-        mrna_mean.append(df["mRNA"].mean())
-        mrna_var.append(df["mRNA"].var())
-        prot_mean.append(df["Proteins"].mean())
-        prot_var.append(df["Proteins"].var())
-    if number_of_runs > 1:
-        prot_mean = [numpy.array(prot_mean).mean()]
-        prot_var = [numpy.array(prot_var).var()]
-        mrna_mean = [numpy.array(mrna_mean).mean()]
-        mrna_var = [numpy.array(mrna_var).var()]
-    else:
-        pass
+        result = zip(df["Counter"].tolist(), df["mRNA"].tolist(), df["Divide"].tolist(), df["Proteins"].tolist())
+        for i in result:
+            if i[2] == "Yes":
+                x = str(uuid.uuid4())
+                mrna_cell_cycles["Cycle_{}".format(x)] = ml
+                protein_cell_cycles["Cycle_{}".format(x)] = pl
+                ml.clear()
+                pl.clear()
+                ml.append(i[1])
+                pl.append(i[3])
+            else:
+                ml.append(i[1])
+                pl.append(i[3])
+    mrna_mean = mrna_cell_cycles.mean(axis=0).tolist()
+    mrna_var = mrna_cell_cycles.var(axis=0).tolist()
+    prot_mean = protein_cell_cycles.mean(axis=0).tolist()
+    prot_var = protein_cell_cycles.var(axis=0).tolist()
+    mrna_sem = sem(mrna_mean)
+    prot_sem = sem(prot_mean)
 
     numerical = DeterministicCellDivision(tmax=3600,
                                           num_of_datapoints=3600,
                                           m0=7.59,
                                           p0=1014.145,
-                                          const=[0.0167, 0.167, 0.0022, 0])
+                                          const=const)
     numerical_run = numerical.numerical_sim()
     num_protein_mean = go.Bar(x=["Numerical Protein Mean"],
                               y=[numerical_run["Proteins"].mean()],
@@ -367,27 +368,34 @@ def plot_statistics(number_of_runs, sim, save):
                           marker=dict(color=["darkgrey"]))
 
     gill_protein_mean = go.Bar(x=["Gillespie Protein Mean"],
-                               y=prot_mean,
+                               y=[numpy.array(prot_mean).mean()],
                                text=prot_mean,
                                name="Gillespie Protein",
-                               marker=dict(color=["firebrick"]))
+                               marker=dict(color=["firebrick"]),
+                               error_y=dict(type='data', array=[prot_sem])
+                               )
 
     gill_mrna_mean = go.Bar(x=["Gillespie mRNA Mean"],
-                            y=mrna_mean,
+                            y=[numpy.array(mrna_mean).mean()],
                             text=mrna_mean,
                             name="Gillespie mRNA",
-                            marker=dict(color=["royalblue"]))
+                            marker=dict(color=["royalblue"]),
+                            error_y=dict(type='data', array=[mrna_sem])
+                            )
 
     gill_protein_var = go.Bar(x=["Gillespie Protein Variance"],
-                              y=prot_var,
+                              y=[numpy.array(prot_var).mean()],
                               text=prot_var,
                               name="Gillespie Protein",
-                              marker=dict(color=["firebrick"]))
+                              marker=dict(color=["firebrick"]),
+                              error_y=dict(type='data', array=[numpy.array(prot_var).std()]))
     gill_mrna_var = go.Bar(x=["Gillespie mRNA Variance"],
-                           y=mrna_var,
+                           y=[numpy.array(mrna_var).mean()],
                            text=mrna_var,
                            name="Gillespie mRNA",
-                           marker=dict(color=["royalblue"]))
+                           marker=dict(color=["royalblue"]),
+                           error_y=dict(type='data', array=[numpy.array(mrna_var).std()]))
+
     stat_fig.add_trace(gill_protein_mean, row=1, col=1)
     stat_fig.add_trace(num_protein_mean, row=1, col=1)
 
@@ -399,7 +407,16 @@ def plot_statistics(number_of_runs, sim, save):
 
     stat_fig.add_trace(gill_mrna_var, row=2, col=2)
     stat_fig.add_trace(num_mrna_var, row=2, col=2)
-
+    stat_fig.update_layout(
+        title="Mean and Variance for dividing for {n} cell cycles".format(n=len(mrna_mean)),
+        yaxis_title="Number of Molecules",
+        showlegend=False,
+        font=dict(
+            family="Courier New, monospace",
+            size=12,
+            color="Black"
+        )
+    )
     stat_fig.show()
     if save:
         html_file = os.path.join(sim, "stats.html")
@@ -456,7 +473,7 @@ def plot_gillespie(number_of_runs, sim, save):
         cell_div_fig.add_trace(protein_trace, secondary_y=False, row=1, col=1)
         cell_div_fig.add_trace(genes_trace, row=2, col=1)
         for i in division(df):
-            cell_div_fig.add_shape(i, row=1, col=1, )
+            cell_div_fig.add_shape(i, row=1, col=1, secondary_y=True)
         cell_div_fig.show()
     else:
         pass
@@ -480,6 +497,7 @@ def main():
     initial_conditions = [7, 1014]
 
     number_of_simulations = 1
+    # time points (in unites of dt)
     cell_cycle = 6300
     save = True
 
@@ -503,12 +521,12 @@ def main():
     gillespie_cell_model = CellDivision(tmax=tmax, m0=initial_conditions[0], p0=initial_conditions[1], const=const,
                                         number_of_sims=number_of_simulations, cell_cycle=cell_cycle)
     run = gillespie_cell_model.multiple_cells()
-    combine_cell_cycles(sim=run, save=save)
+    combine_cell_cycles(sim=run, save=save, const=const)
     # average_cycle_times(sim=run, save=save)
 
     # """Different plots for the Gillespie data"""
     # histogram_plot(sim=run, save=save)
-    # plot_statistics(number_of_simulations, sim=run, save=save)
+    plot_statistics(sim=run, save=save, const=const)
     # plot_gillespie(number_of_runs=number_of_simulations, sim=run, save=save)
 
 
