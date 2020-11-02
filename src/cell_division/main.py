@@ -40,7 +40,7 @@ def gaussian(u, s, x):
     return gauss
 
 
-def average_cycle_times(sim, save):
+def average_cycle_times(sim, save, cell_cycle):
     path = os.path.join(sim, "*.csv")
     for fname in glob.glob(path):
         df = pandas.read_csv(fname, sep='\t')
@@ -48,9 +48,9 @@ def average_cycle_times(sim, save):
     time_at_two_genes = []
     result = zip(df["Clock"].tolist(), df["Counter"].tolist())
     for i in result:
-        if i[1] == 3600:
+        if i[1] == cell_cycle:
             time_at_division.append(i[0])
-        elif i[1] == 1800:
+        elif i[1] == cell_cycle/2:
             time_at_two_genes.append(i[0])
 
     time_at_division = [x / 60 for x in time_at_division]
@@ -388,13 +388,14 @@ def plot_statistics(sim, save, const):
                               text=prot_var,
                               name="Gillespie Protein",
                               marker=dict(color=["firebrick"]),
-                              error_y=dict(type='data', array=[numpy.array(prot_var).std()]))
+                              error_y=dict(type='data', array=[sem(prot_var)]))
+
     gill_mrna_var = go.Bar(x=["Gillespie mRNA Variance"],
                            y=[numpy.array(mrna_var).mean()],
                            text=mrna_var,
                            name="Gillespie mRNA",
                            marker=dict(color=["royalblue"]),
-                           error_y=dict(type='data', array=[numpy.array(mrna_var).std()]))
+                           error_y=dict(type='data', array=[sem(mrna_var)]))
 
     stat_fig.add_trace(gill_protein_mean, row=1, col=1)
     stat_fig.add_trace(num_protein_mean, row=1, col=1)
@@ -522,10 +523,10 @@ def main():
                                         number_of_sims=number_of_simulations, cell_cycle=cell_cycle)
     run = gillespie_cell_model.multiple_cells()
     combine_cell_cycles(sim=run, save=save, const=const)
-    # average_cycle_times(sim=run, save=save)
+    average_cycle_times(sim=run, save=save, cell_cycle=cell_cycle)
 
     # """Different plots for the Gillespie data"""
-    # histogram_plot(sim=run, save=save)
+    histogram_plot(sim=run, save=save)
     plot_statistics(sim=run, save=save, const=const)
     # plot_gillespie(number_of_runs=number_of_simulations, sim=run, save=save)
 
