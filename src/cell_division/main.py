@@ -3,7 +3,7 @@ import pandas
 import uuid
 import math
 import plotly.graph_objects as go
-from scipy.stats import sem
+from scipy.stats import sem, norm
 import numpy
 from plotly.subplots import make_subplots
 import glob
@@ -68,12 +68,11 @@ def average_cycle_times(sim, save, cell_cycle):
     genes_std = numpy.array(time_at_two_genes).std()
     divide_mean = numpy.array(time_at_division).mean()
     divide_std = numpy.array(time_at_division).std()
-    gauss_divide = []
-    gauss_genes = []
-    for i in numpy.sort(time_at_division):
-        gauss_divide.append(gaussian(u=divide_mean, s=divide_std, x=i))
-    for i in numpy.sort(time_at_two_genes):
-        gauss_genes.append(gaussian(u=genes_mean, s=genes_std, x=i))
+
+    gauss_divide_x = numpy.linspace(min(time_at_division), max(time_at_division), len(time_at_division))
+    gauss_divide_y = norm.pdf(gauss_divide_x, divide_mean, divide_std)
+    gauss_genes_x = numpy.linspace(min(time_at_two_genes), max(time_at_two_genes), len(time_at_two_genes))
+    gauss_genes_y = norm.pdf(gauss_genes_x, genes_mean, genes_std)
 
     fig = make_subplots(rows=2, cols=1)
     fig.update_yaxes(title_text="Probability of <b>Two Genes</b> (minutes)", row=2, col=1)
@@ -87,10 +86,10 @@ def average_cycle_times(sim, save, cell_cycle):
             size=12,
             color="Black"))
 
-    division_trace = go.Histogram(x=time_at_division, histnorm='probability', name="Division Histogram")
-    division_gauss_trace = go.Scatter(x=numpy.sort(time_at_division), y=gauss_divide,  showlegend=False)
-    two_gene_trace = go.Histogram(x=time_at_two_genes, histnorm='probability', name="2 Genes Histogram")
-    two_gene_gauss_trace = go.Scatter(x=numpy.sort(time_at_two_genes), y=gauss_genes,  showlegend=False)
+    division_trace = go.Histogram(x=time_at_division, histnorm='probability density', name="Division Histogram")
+    division_gauss_trace = go.Scatter(x=gauss_divide_x, y=gauss_divide_y,  name="Gaussian")
+    two_gene_trace = go.Histogram(x=time_at_two_genes, histnorm='probability density', name="2 Genes Histogram")
+    two_gene_gauss_trace = go.Scatter(x=gauss_genes_x, y=gauss_genes_y,  name="Gaussian")
     fig.add_trace(division_trace, row=1, col=1)
     fig.add_trace(division_gauss_trace, row=1, col=1,)
     fig.add_trace(two_gene_trace, row=2, col=1)
@@ -159,13 +158,14 @@ def combine_cell_cycles(sim, save, const):
         prot_std_minus.append(i-j)
         prot_std_plus.append(i+j)
 
-    numerical = DeterministicCellDivision(tmax=3600,
-                                          num_of_datapoints=3600,
+    numerical = DeterministicCellDivision(tmax=36000,
+                                          num_of_datapoints=36000,
                                           m0=7.59,
                                           p0=1014.145,
                                           const=const)
     numerical_run = numerical.numerical_sim()
-
+    numerical_run = numerical_run.iloc[32401:]
+    numerical_x = numpy.linspace(0, 1, 3600)
     """Just graphing things"""
     fig = make_subplots(rows=2, cols=1, vertical_spacing=0.02, shared_xaxes=True)
     # Making traces for plot
@@ -186,7 +186,7 @@ def combine_cell_cycles(sim, save, const):
                             y=mrna_cell_cycles["Average"],
                             name="Gillespie mRNA",
                             line=dict(color='royalblue'))
-    numerical_mrna_trace = go.Scatter(x=numerical_run["Time"],
+    numerical_mrna_trace = go.Scatter(x=numerical_x,
                                       y=numerical_run["mRNA"],
                                       name="Numerical mRNA",
                                       line=dict(color='royalblue',
@@ -208,7 +208,7 @@ def combine_cell_cycles(sim, save, const):
                             y=protein_cell_cycles["Average"],
                             name="Gillespie Protein",
                             line=dict(color='firebrick'))
-    numerical_prot_trace = go.Scatter(x=numerical_run["Time"],
+    numerical_prot_trace = go.Scatter(x=numerical_x,
                                       y=numerical_run["Proteins"],
                                       name="Numerical Proteins",
                                       line=dict(color='firebrick',
@@ -299,8 +299,8 @@ def histogram_plot(sim, save):
         df = pandas.read_csv(fname, sep='\t')
         mrna.extend(df["mRNA"].tolist())
         prot.extend(df["Proteins"].tolist())
-    mrna_hist = go.Histogram(x=mrna, histnorm='probability', name="mRNA Histogram")
-    prot_hist = go.Histogram(x=prot, histnorm='probability', name="Protein Histogram")
+    mrna_hist = go.Histogram(x=mrna, name="mRNA Histogram")
+    prot_hist = go.Histogram(x=prot, name="Protein Histogram")
     norm_hist.add_trace(mrna_hist, row=1, col=1)
     norm_hist.add_trace(prot_hist, row=2, col=1)
     norm_hist.show()
@@ -342,12 +342,13 @@ def plot_statistics(sim, save, const):
     mrna_sem = sem(mrna_mean)
     prot_sem = sem(prot_mean)
 
-    numerical = DeterministicCellDivision(tmax=3600,
-                                          num_of_datapoints=3600,
+    numerical = DeterministicCellDivision(tmax=36000,
+                                          num_of_datapoints=36000,
                                           m0=7.59,
                                           p0=1014.145,
                                           const=const)
     numerical_run = numerical.numerical_sim()
+    numerical_run = numerical_run.iloc[32400:]
     num_protein_mean = go.Bar(x=["Numerical Protein Mean"],
                               y=[numerical_run["Proteins"].mean()],
                               name="Numerical Protein",
@@ -509,14 +510,6 @@ def main():
     #                                       p0=initial_conditions[1],
     #                                       const=const)
     # numerical_plot(numerical, save)
-    #
-    # """Initiate Analytical sim"""
-    # deterministic = DeterministicCellDivision(tmax=tmax,
-    #                                           num_of_datapoints=number_of_datapoints,
-    #                                           m0=initial_conditions[0],
-    #                                           p0=initial_conditions[1],
-    #                                           const=const)
-    # analytical_plot(deterministic, save=save)
 
     """Begin Gillespie Simulation"""
     gillespie_cell_model = CellDivision(tmax=tmax, m0=initial_conditions[0], p0=initial_conditions[1], const=const,

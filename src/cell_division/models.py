@@ -217,59 +217,6 @@ class DeterministicCellDivision:
         self.dp = const[3]
         self.t = numpy.linspace(0, self.tmax, self.n)  # time points
 
-    def analytical_solution(self, t, counter, current_mrna, current_prot):
-        C1 = self.m0 - self.k0 / self.dm
-        C2 = self.p0 - (self.k1 * self.k0) / (self.dm * self.dp) + C1 * self.k1 / (self.dm - self.dp)
-        if math.floor(counter) < 1800:
-            m_rna = C1 * math.exp(-self.dm * t) + self.k0 / self.dm
-            protein = (self.k1 * self.k0) / (self.dm * self.dp) - (C1 * self.k1 * math.exp(-self.dm * t)) / (self.dm - self.dp) + C2 * math.exp(-self.dp * t)
-            return m_rna, protein
-        elif 1800 <= math.floor(counter) <= 3600:
-            m_rna = C1 * math.exp(-self.dm * t) + 2 * self.k0 / self.dm
-            protein = (2 * self.k1 * self.k0)/(self.dm * (self.dm - self.dp)) + \
-                      (2 * self.k0 * self.k1)/(self.dp * (self.dm-self.dp)) - \
-                      (C1 * self.k1 * math.exp(-self.dm * t))/(self.dm - self.dp) + \
-                       C2 * math.exp(-self.dp * t)
-            return m_rna, protein
-        elif math.floor(counter) == 3601:
-            return current_mrna/2, current_prot/2
-
-    def analytical_simulation(self):
-        # store solutions
-        m = []
-        p = []
-        counters = []
-        current_mrna = self.m0
-        current_prot = self.p0
-
-        counter = 0
-        # iterate over time:
-        for i in self.t:
-            if counter <= 3600:
-                counter = counter + 1
-                z = self.analytical_solution(i, counter=counter, current_mrna=current_mrna, current_prot=current_prot)
-                current_mrna = z[0]
-                current_prot = z[1]
-                m.append(z[0])
-                p.append(z[1])
-                counters.append(counter)
-
-            elif counter > 3600:
-                counter = 0
-                z = self.analytical_solution(i, counter=counter, current_mrna=current_mrna, current_prot=current_prot)
-                current_mrna = z[0]
-                current_prot = z[1]
-                m.append(z[0])
-                p.append(z[1])
-                counters.append(counter)
-        time = [x/3600 for x in self.t]
-        sim_df = pandas.DataFrame()
-        sim_df["Time"] = time
-        sim_df["Proteins"] = p
-        sim_df["mRNA"] = m
-        sim_df["Counter"] = counters
-        return sim_df
-
     def numerical_solution_1_gene(self, z, t):
         m0 = z[0]
         p0 = z[1]
