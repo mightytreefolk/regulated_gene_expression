@@ -521,7 +521,7 @@ def main():
     # """Different plots for the Gillespie data"""
     histogram_plot(sim=run, save=save)
     plot_statistics(sim=run, save=save, const=const)
-    # plot_gillespie(number_of_runs=number_of_simulations, sim=run, save=save)
+    plot_gillespie(number_of_runs=number_of_simulations, sim=run, save=save)
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import os
 import math
 import plotly.graph_objects as go
 
+from scipy.stats import sem
 from plotly.subplots import make_subplots
 from datetime import datetime
 from models import UnregulatedGeneExpression, GillespieUnregulatedGeneExpression
@@ -84,7 +85,7 @@ def main():
     # m0, p0 [0, 0]
     initial_conditions = [7, 1014]
 
-    number_of_cells = 30
+    number_of_cells = 10
 
     plot_average = True
     save = True
@@ -255,7 +256,7 @@ def main():
         norm_mrna_hist = go.Figure()
         mrna_prob_data = prob_dist(total_mrna, const[0], const[2])
         mrna_dist = go.Scatter(x=mrna_prob_data[0], y=mrna_prob_data[1], name="Probability distribution")
-        hist = go.Histogram(x=total_mrna, histnorm='probability', name="mRNA Histogram")
+        hist = go.Histogram(x=total_mrna, histnorm='probability density', name="mRNA Histogram")
         norm_mrna_hist.add_trace(mrna_dist)
         norm_mrna_hist.add_trace(hist)
         norm_mrna_hist.update_layout(
@@ -293,6 +294,8 @@ def main():
         gill_mrna_var = np.array(gill_mrna_var)
         gill_prot_mean= gill_protein["Average"].mean()
         gill_mrna_mean= gill_mrna["Average"].mean()
+        prot_sem = sem(gill_protein["Average"].tolist())
+        mrna_sem = sem(gill_mrna["Average"].tolist())
 
     """Create Stat traces from data"""
     num_prot_mean_trace = go.Bar(x=["Numerical Protein Mean"],
@@ -310,25 +313,25 @@ def main():
                                   y=[gill_prot_mean],
                                   name="Gillespie Protein",
                                   marker=dict(color=["orange"]),
-                                  error_y=dict(type='data', array=[math.sqrt(gill_prot_var.mean())])
+                                  error_y=dict(type='data', array=[prot_sem])
                                   )
     gill_prot_var_trace = go.Bar(x=["Gillespie Protein Variance"],
                                  y=[gill_prot_var.mean()],
                                  name="Gillespie Protein",
                                  marker=dict(color=["orange"]),
-                                 error_y=dict(type='data', array=[math.sqrt(gill_prot_var.var())])
+                                 error_y=dict(type='data', array=[sem(gill_prot_var)])
                                  )
     gill_mrna_mean_trace = go.Bar(x=["Gillespie mRNA Mean"],
                                   y=[gill_mrna_mean],
                                   name="Gillespie mRNA",
                                   marker=dict(color=["orange"]),
-                                  error_y=dict(type='data', array=[math.sqrt(gill_mrna_var.mean())])
+                                  error_y=dict(type='data', array=[mrna_sem])
                                   )
     gill_mrna_var_trace = go.Bar(x=["Gillespie mRNA Variance"],
                                  y=[gill_mrna_var.mean()],
                                  name="Gillespie mRNA",
                                  marker=dict(color=["orange"]),
-                                 error_y=dict(type='data', array=[math.sqrt(gill_mrna_var.var())])
+                                 error_y=dict(type='data', array=[sem(gill_mrna_var)])
                                  )
     theoretical_mrna_mean = go.Bar(x=["Theoretical mRNA Mean"],
                                    y=[const[0]/const[2]],
@@ -341,11 +344,11 @@ def main():
                                   name="Theoretical mRNA Variance",
                                   marker=dict(color=["darkgrey"])
                                   )
-    theoretical_prot_var = go.Bar(x=["Theoretical Protein Variance"],
-                                  y=[(const[0]*const[1])/(const[2]*const[3])],
-                                  name="Theoretical Protein Variance",
-                                  marker=dict(color=["darkgrey"])
-                                  )
+    # theoretical_prot_var = go.Bar(x=["Theoretical Protein Variance"],
+    #                               y=[(const[0]*const[1])/(const[2]*const[3])],
+    #                               name="Theoretical Protein Variance",
+    #                               marker=dict(color=["darkgrey"])
+    #                               )
     theoretical_prot_mean = go.Bar(x=["Theoretical Protein Mean"],
                                   y=[(const[0]*const[1])/(const[2]*const[3])],
                                   name="Theoretical Protein Mean",
@@ -364,7 +367,7 @@ def main():
     stat_ode_num_fig.add_trace(gill_mrna_mean_trace, row=1, col=2)
 
     stat_ode_num_fig.add_trace(gill_prot_var_trace, row=2, col=1)
-    stat_ode_num_fig.add_trace(theoretical_prot_var, row=2, col=1)
+    # stat_ode_num_fig.add_trace(theoretical_prot_var, row=2, col=1)
 
     stat_ode_num_fig.add_trace(gill_mrna_var_trace, row=2, col=2)
     stat_ode_num_fig.add_trace(theoretical_mrna_var, row=2, col=2)
@@ -381,14 +384,14 @@ def main():
     stat_ode_num_fig.show()
 
     if save:
-        stat_ode_num_fig.write_html(stat_path)
+        # stat_ode_num_fig.write_html(stat_path)
         stat_ode_num_fig.write_image(stat_image_path)
-        gill_fig.write_html(gill_path)
+        # gill_fig.write_html(gill_path)
         gill_fig.write_image(gill_image_path)
-        ode_num_fig.write_html(num_ode_path)
+        # ode_num_fig.write_html(num_ode_path)
         ode_num_fig.write_image(num_ode_image_path)
         norm_mrna_hist.write_image(norm_mrna_hist_image_path)
-        norm_mrna_hist.write_html(norm_mrna_hist_path)
+        # norm_mrna_hist.write_html(norm_mrna_hist_path)
     else:
         pass
 
